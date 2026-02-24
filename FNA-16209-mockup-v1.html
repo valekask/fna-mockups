@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FNA-16209: Explore Widget — Layout Settings Proposal</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+<style>
+  :root {
+    --fna-primary: #0d6efd;
+    --fna-dark: #1e2a3a;
+    --fna-sidebar-bg: #f8f9fa;
+    --fna-border: #dee2e6;
+    --fna-text: #212529;
+    --fna-text-muted: #6c757d;
+    --fna-hover: #e9ecef;
+    --fna-active-btn: #cfe2ff;
+    --fna-danger: #dc3545;
+    --fna-warning-bg: #e8f0fe;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+    color: var(--fna-text);
+    background: #eef1f5;
+    margin: 0;
+  }
+
+  /* ===== PRESENTATION LAYOUT ===== */
+  .presentation {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+
+  .slide {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    margin-bottom: 32px;
+    overflow: hidden;
+  }
+
+  .slide-header {
+    background: var(--fna-dark);
+    color: white;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .slide-header .step-badge {
+    background: var(--fna-primary);
+    color: white;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+
+  .slide-header h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .slide-header .subtitle {
+    font-size: 13px;
+    opacity: 0.7;
+    margin-left: auto;
+  }
+
+  .slide-body {
+    padding: 24px;
+  }
+
+  .slide-description {
+    background: var(--fna-warning-bg);
+    border-left: 4px solid var(--fna-primary);
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    border-radius: 0 6px 6px 0;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  /* ===== WIDGET MOCKUP ===== */
+  .widget-frame {
+    border: 2px solid var(--fna-border);
+    border-radius: 6px;
+    background: white;
+    overflow: hidden;
+  }
+
+  .widget-toolbar {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--fna-border);
+    background: #fafbfc;
+    gap: 4px;
+  }
+
+  .widget-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-right: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .widget-title .subtitle-text {
+    font-weight: 400;
+    color: var(--fna-text-muted);
+    font-size: 12px;
+  }
+
+  .toolbar-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--fna-text-muted);
+    cursor: pointer;
+    font-size: 14px;
+    position: relative;
+  }
+
+  .toolbar-btn:hover { background: var(--fna-hover); color: var(--fna-text); }
+  .toolbar-btn.active { background: var(--fna-active-btn); color: var(--fna-primary); }
+  .toolbar-btn.new-btn { color: var(--fna-primary); }
+  .toolbar-btn.new-btn:hover { background: #cfe2ff; }
+
+  .toolbar-separator {
+    width: 1px;
+    height: 20px;
+    background: var(--fna-border);
+    margin: 0 4px;
+  }
+
+  .btn-tooltip {
+    display: none;
+    position: absolute;
+    bottom: -28px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #333;
+    color: white;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    z-index: 100;
+  }
+
+  .toolbar-btn:hover .btn-tooltip { display: block; }
+
+  /* Network placeholder */
+  .network-area {
+    height: 280px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    background: #fdfdfd;
+  }
+
+  .network-placeholder {
+    opacity: 0.15;
+    font-size: 120px;
+    color: var(--fna-text-muted);
+  }
+
+  /* Empty state */
+  .empty-state {
+    height: 280px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--fna-warning-bg);
+    gap: 8px;
+  }
+
+  .empty-state .title { font-weight: 700; color: var(--fna-text); font-size: 14px; }
+  .empty-state .detail { color: var(--fna-text-muted); font-size: 13px; }
+
+  .btn-action {
+    background: var(--fna-danger);
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 4px;
+  }
+
+  .btn-action:hover { opacity: 0.9; }
+
+  /* ===== SIDE PANEL MOCKUP ===== */
+  .mockup-container {
+    display: flex;
+    gap: 0;
+    border: 2px solid var(--fna-border);
+    border-radius: 6px;
+    overflow: hidden;
+    background: white;
+  }
+
+  .mockup-main {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .mockup-panel {
+    width: 340px;
+    border-left: 2px solid var(--fna-border);
+    background: white;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .panel-header-bar {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--fna-border);
+    background: #fafbfc;
+  }
+
+  .panel-header-bar h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    flex: 1;
+  }
+
+  .panel-close {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    color: var(--fna-text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .panel-close:hover { background: var(--fna-hover); }
+
+  .panel-content {
+    padding: 16px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .panel-section {
+    margin-bottom: 20px;
+  }
+
+  .panel-section-title {
+    font-weight: 700;
+    font-size: 13px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+
+  .panel-section-title i { font-size: 10px; }
+
+  .form-label-sm {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .form-label-sm .info-icon {
+    color: var(--fna-text-muted);
+    font-size: 11px;
+    cursor: help;
+  }
+
+  .mock-select {
+    width: 100%;
+    padding: 6px 10px;
+    border: 1px solid var(--fna-border);
+    border-radius: 4px;
+    font-size: 13px;
+    background: white;
+    color: var(--fna-text);
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236c757d' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    cursor: pointer;
+  }
+
+  .mock-input {
+    width: 100%;
+    padding: 6px 10px;
+    border: 1px solid var(--fna-border);
+    border-radius: 4px;
+    font-size: 13px;
+  }
+
+  .mock-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .toggle-track {
+    width: 36px;
+    height: 20px;
+    border-radius: 10px;
+    background: #ccc;
+    position: relative;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .toggle-track.on { background: var(--fna-primary); }
+
+  .toggle-track::after {
+    content: '';
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: white;
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    transition: left 0.15s;
+  }
+
+  .toggle-track.on::after { left: 18px; }
+
+  .toggle-label { font-size: 12px; line-height: 1.3; }
+
+  .field-hint {
+    font-size: 11px;
+    color: var(--fna-text-muted);
+    margin-top: 4px;
+    font-style: italic;
+    line-height: 1.4;
+  }
+
+  /* ===== HIGHLIGHT ANNOTATIONS ===== */
+  .highlight-ring {
+    outline: 3px solid #ff6b35;
+    outline-offset: 3px;
+    border-radius: 4px;
+    position: relative;
+  }
+
+  .annotation-tag {
+    position: absolute;
+    background: #ff6b35;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 3px;
+    white-space: nowrap;
+    z-index: 10;
+  }
+
+  .annotation-tag.top-right { top: -24px; right: -3px; }
+  .annotation-tag.top-left { top: -24px; left: -3px; }
+  .annotation-tag.bottom { bottom: -24px; left: 50%; transform: translateX(-50%); }
+
+  /* Removed field styling */
+  .removed-field {
+    opacity: 0.35;
+    text-decoration: line-through;
+    pointer-events: none;
+  }
+
+  .removed-badge {
+    background: var(--fna-danger);
+    color: white;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-left: 8px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  /* Comparison layout */
+  .comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  .comparison-label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    display: inline-block;
+  }
+
+  .comparison-label.before { background: #f8d7da; color: #842029; }
+  .comparison-label.after { background: #d1e7dd; color: #0f5132; }
+
+  /* Loading overlay */
+  .loading-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0.92);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    z-index: 5;
+  }
+
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--fna-border);
+    border-top-color: var(--fna-primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .btn-cancel {
+    background: white;
+    border: 1px solid var(--fna-border);
+    padding: 6px 16px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--fna-text);
+  }
+
+  .btn-cancel:hover { background: var(--fna-hover); }
+
+  /* Grouped select styling */
+  .mock-select optgroup { font-weight: 700; font-size: 12px; }
+  .mock-select option { font-weight: 400; padding: 4px 8px; }
+
+  /* AC reference badges */
+  .ac-badge {
+    background: #6f42c1;
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 700;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+</style>
+</head>
+<body>
+
+<div class="presentation">
+
+  <!-- ===== TITLE SLIDE ===== -->
+  <div class="slide">
+    <div class="slide-header" style="padding: 24px 32px;">
+      <div>
+        <h2 style="font-size: 22px; margin-bottom: 4px;">FNA-16209: Explore Widget — Layout Settings</h2>
+        <div style="opacity: 0.7; font-size: 14px;">UX Proposal: Separate "Layout Settings" panel (analogous to ILO "Analysis Settings")</div>
+      </div>
+    </div>
+    <div class="slide-body">
+      <div class="row g-4">
+        <div class="col-md-6">
+          <h5 style="font-weight: 700;">Problem</h5>
+          <p style="font-size: 13px; line-height: 1.6;">The Explore Widget's existing Settings panel is dense with technical parameters. Users need a fast, intuitive way to configure <strong>Layout Algorithm</strong> and <strong>Priority Metrics</strong> without scrolling through advanced options.</p>
+        </div>
+        <div class="col-md-6">
+          <h5 style="font-weight: 700;">Proposed Solution</h5>
+          <p style="font-size: 13px; line-height: 1.6;">Add a dedicated <strong>"Layout Settings"</strong> button in the widget toolbar that opens a separate side panel — exactly like ILO's "Analysis Settings" button. This keeps quick config separate from advanced settings, and provides an empty-state prompt when layout is not configured.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SLIDE 1: TOOLBAR COMPARISON ===== -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="step-badge">1</div>
+      <h2>Widget Toolbar — New Button</h2>
+      <span class="subtitle">AC 4: Entry Point</span>
+    </div>
+    <div class="slide-body">
+      <div class="slide-description">
+        A new <strong>"Layout Settings"</strong> button is added to the widget toolbar (using a grid/layout icon), following the same pattern as ILO's "Analysis" button.
+      </div>
+
+      <div class="comparison">
+        <!-- BEFORE -->
+        <div>
+          <div class="comparison-label before">Current Toolbar</div>
+          <div class="widget-frame">
+            <div class="widget-toolbar">
+              <div class="widget-title">
+                Explore <span class="subtitle-text">(showing 10 nodes)</span>
+              </div>
+              <input type="text" placeholder="Find and focus nodes" style="border: 1px solid #dee2e6; border-radius: 4px; padding: 4px 8px; font-size: 12px; width: 200px;">
+              <button class="toolbar-btn"><i class="fa-solid fa-filter"></i></button>
+              <button class="toolbar-btn"><i class="fa-solid fa-expand"></i></button>
+              <button class="toolbar-btn"><i class="fa-solid fa-ellipsis-h"></i></button>
+            </div>
+            <div class="network-area" style="height: 60px;">
+              <span style="color: #aaa; font-size: 12px;">... widget content ...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- AFTER -->
+        <div>
+          <div class="comparison-label after">Proposed Toolbar</div>
+          <div class="widget-frame">
+            <div class="widget-toolbar">
+              <div class="widget-title">
+                Explore <span class="subtitle-text">(showing 10 nodes)</span>
+              </div>
+              <input type="text" placeholder="Find and focus nodes" style="border: 1px solid #dee2e6; border-radius: 4px; padding: 4px 8px; font-size: 12px; width: 200px;">
+
+              <!-- NEW BUTTON -->
+              <div style="position: relative; display: inline-flex;">
+                <span class="annotation-tag top-right">NEW</span>
+                <button class="toolbar-btn new-btn highlight-ring" title="Layout Settings">
+                  <i class="fa-solid fa-diagram-project"></i>
+                  <span class="btn-tooltip">Layout Settings</span>
+                </button>
+              </div>
+
+              <div class="toolbar-separator"></div>
+              <button class="toolbar-btn"><i class="fa-solid fa-filter"></i></button>
+              <button class="toolbar-btn"><i class="fa-solid fa-expand"></i></button>
+              <button class="toolbar-btn"><i class="fa-solid fa-ellipsis-h"></i></button>
+            </div>
+            <div class="network-area" style="height: 60px;">
+              <span style="color: #aaa; font-size: 12px;">... widget content ...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SLIDE 2: LAYOUT SETTINGS PANEL ===== -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="step-badge">2</div>
+      <h2>Layout Settings Panel</h2>
+      <span class="subtitle">AC 2 + AC 3: Layout & Priority Metrics</span>
+    </div>
+    <div class="slide-body">
+      <div class="slide-description">
+        Clicking "Layout Settings" opens a <strong>dedicated side panel</strong> (same mechanism as ILO's "Analysis" panel). It contains only two fields: <strong>Layout Algorithm</strong> and <strong>Priority Metric</strong>.
+      </div>
+
+      <div class="mockup-container">
+        <!-- Main area -->
+        <div class="mockup-main">
+          <div class="widget-toolbar">
+            <div class="widget-title">Explore <span class="subtitle-text">(showing 10 nodes)</span></div>
+            <input type="text" placeholder="Find and focus nodes" style="border: 1px solid #dee2e6; border-radius: 4px; padding: 4px 8px; font-size: 12px; width: 200px;">
+            <button class="toolbar-btn active"><i class="fa-solid fa-diagram-project"></i></button>
+            <div class="toolbar-separator"></div>
+            <button class="toolbar-btn"><i class="fa-solid fa-filter"></i></button>
+            <button class="toolbar-btn"><i class="fa-solid fa-expand"></i></button>
+            <button class="toolbar-btn"><i class="fa-solid fa-ellipsis-h"></i></button>
+          </div>
+          <div class="network-area">
+            <div class="network-placeholder"><i class="fa-solid fa-circle-nodes"></i></div>
+          </div>
+        </div>
+
+        <!-- Layout Settings Panel -->
+        <div class="mockup-panel">
+          <div class="panel-header-bar">
+            <h3>Layout Settings</h3>
+            <button class="panel-close"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <div class="panel-content">
+            <!-- Layout Algorithm -->
+            <div class="panel-section">
+              <div class="form-label-sm">
+                Layout algorithm
+                <i class="fa-solid fa-circle-info info-icon" title="Determines how nodes are positioned in the visualization"></i>
+                <span class="ac-badge">AC 2</span>
+              </div>
+              <select class="mock-select">
+                <option selected>Force-Directed</option>
+                <option>Hierarchy</option>
+                <option>Radial Tree</option>
+              </select>
+              <div class="field-hint">Force-directed is best for seeing clusters and hubs.</div>
+            </div>
+
+            <!-- Priority Metric -->
+            <div class="panel-section">
+              <div class="form-label-sm">
+                Priority metric
+                <i class="fa-solid fa-circle-info info-icon" title="Property used to prioritize node visibility when nodes overlap"></i>
+                <span class="ac-badge">AC 3</span>
+              </div>
+              <select class="mock-select">
+                <optgroup label="Calculate Metrics">
+                  <option selected>Local Importance</option>
+                </optgroup>
+                <optgroup label="Existing Properties">
+                  <option>pagerank</option>
+                  <option>degree</option>
+                  <option>betweenness</option>
+                </optgroup>
+              </select>
+              <div class="field-hint">Nodes with higher priority values are shown first when space is limited.</div>
+            </div>
+
+            <!-- Note about mapping -->
+            <div style="background: #fff3cd; border-radius: 6px; padding: 10px 12px; font-size: 11px; line-height: 1.5; margin-top: 16px;">
+              <i class="fa-solid fa-circle-info" style="color: #997404;"></i>
+              <strong>Note:</strong> This replaces the "Vertex weight property" from the main Settings panel. The selected priority metric is used as the <code>vertex_weight</code> parameter.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SLIDE 3: EMPTY STATE ===== -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="step-badge">3</div>
+      <h2>Empty State — Layout Not Configured</h2>
+      <span class="subtitle">AC 4: Entry Point (first-time experience)</span>
+    </div>
+    <div class="slide-body">
+      <div class="slide-description">
+        When the Explore widget is first added (or layout settings are not configured), the widget shows an empty-state message with a quick-open button — exactly like ILO's "Analysis configuration is not set up" pattern.
+      </div>
+
+      <div class="mockup-container">
+        <div class="mockup-main">
+          <div class="widget-toolbar">
+            <div class="widget-title">Explore</div>
+            <button class="toolbar-btn new-btn"><i class="fa-solid fa-diagram-project"></i></button>
+            <div class="toolbar-separator"></div>
+            <button class="toolbar-btn" style="opacity: 0.4;" disabled><i class="fa-solid fa-filter"></i></button>
+            <button class="toolbar-btn"><i class="fa-solid fa-expand"></i></button>
+            <button class="toolbar-btn"><i class="fa-solid fa-ellipsis-h"></i></button>
+          </div>
+          <div class="empty-state">
+            <div class="title">The Explore widget can't be created</div>
+            <div class="detail">Layout configuration is not set up</div>
+            <button class="btn-action">Layout Settings</button>
+          </div>
+        </div>
+
+        <!-- Panel closed — just show the sidebar icons -->
+        <div style="width: 44px; border-left: 2px solid var(--fna-border); display: flex; flex-direction: column; align-items: center; padding-top: 12px; gap: 8px; background: #fafbfc;">
+          <button class="toolbar-btn" title="Filters"><i class="fa-solid fa-filter"></i></button>
+          <button class="toolbar-btn" title="Settings"><i class="fa-solid fa-sliders"></i></button>
+        </div>
+      </div>
+
+      <div style="margin-top: 16px; display: flex; gap: 16px; font-size: 12px; color: var(--fna-text-muted);">
+        <div><i class="fa-solid fa-arrow-right" style="color: var(--fna-primary);"></i> Clicking the red "Layout Settings" button opens the Layout Settings panel (slide 2)</div>
+        <div><i class="fa-solid fa-arrow-right" style="color: var(--fna-primary);"></i> Same UX as ILO's "Analysis Settings" empty state</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SLIDE 4: LOADING STATE ===== -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="step-badge">4</div>
+      <h2>Loading State — Layout Computation</h2>
+      <span class="subtitle">AC 5: Loading & Interruption</span>
+    </div>
+    <div class="slide-body">
+      <div class="slide-description">
+        After closing the Layout Settings panel, if the layout algorithm or priority metric requires computation, a loading overlay appears with a cancel button.
+      </div>
+
+      <div class="widget-frame">
+        <div class="widget-toolbar">
+          <div class="widget-title">Explore</div>
+          <button class="toolbar-btn"><i class="fa-solid fa-diagram-project"></i></button>
+          <div class="toolbar-separator"></div>
+          <button class="toolbar-btn" style="opacity: 0.4;" disabled><i class="fa-solid fa-filter"></i></button>
+          <button class="toolbar-btn"><i class="fa-solid fa-expand"></i></button>
+          <button class="toolbar-btn"><i class="fa-solid fa-ellipsis-h"></i></button>
+        </div>
+        <div class="network-area" style="position: relative;">
+          <div class="network-placeholder"><i class="fa-solid fa-circle-nodes"></i></div>
+          <div class="loading-overlay">
+            <div class="spinner"></div>
+            <div style="font-weight: 600; font-size: 14px;">Computing layout...</div>
+            <div style="font-size: 12px; color: var(--fna-text-muted);">Calculating Force-Directed layout and Local Importance metric</div>
+            <button class="btn-cancel">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SLIDE 5: SETTINGS PANEL CHANGE ===== -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="step-badge">5</div>
+      <h2>Main Settings Panel — Updated</h2>
+      <span class="subtitle">AC 1: Remove overlapping field</span>
+    </div>
+    <div class="slide-body">
+      <div class="slide-description">
+        The "Vertex weight property" field is <strong>removed</strong> from the main Settings panel since it's now managed by the Layout Settings panel as "Priority metric". All other advanced settings remain unchanged.
+      </div>
+
+      <div class="comparison">
+        <!-- BEFORE -->
+        <div>
+          <div class="comparison-label before">Current Settings</div>
+          <div style="border: 1px solid var(--fna-border); border-radius: 6px; overflow: hidden;">
+            <div class="panel-header-bar">
+              <h3 style="font-size: 14px;">Settings</h3>
+              <button class="panel-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="panel-content" style="font-size: 12px;">
+              <div style="font-size: 15px; font-weight: 700; margin-bottom: 12px;">Explore widget</div>
+
+              <div class="panel-section-title"><i class="fa-solid fa-chevron-down"></i> General settings</div>
+              <div style="margin-left: 16px; margin-bottom: 16px;">
+                <div class="form-label-sm">Widget label</div>
+                <input class="mock-input" value="Explore">
+              </div>
+
+              <div class="panel-section-title"><i class="fa-solid fa-chevron-down"></i> Explore layout</div>
+              <div style="margin-left: 16px; margin-bottom: 16px;">
+                <div class="mock-toggle">
+                  <div class="toggle-track"></div>
+                  <span class="toggle-label">Auto-center the explore visualization when data filters are applied</span>
+                </div>
+                <div class="mock-toggle">
+                  <div class="toggle-track"></div>
+                  <span class="toggle-label">Hide disconnected nodes</span>
+                </div>
+              </div>
+
+              <div style="margin-bottom: 12px; padding: 8px; background: #fff3cd; border-radius: 4px;">
+                <div class="form-label-sm" style="margin-bottom: 4px;">
+                  Vertex weight property <i class="fa-solid fa-circle-info info-icon"></i>
+                </div>
+                <select class="mock-select"><option>Select property</option></select>
+                <div style="font-size: 10px; color: #997404; margin-top: 4px;">
+                  <i class="fa-solid fa-arrow-right"></i> This field overlaps with the new Layout Settings
+                </div>
+              </div>
+
+              <div class="form-label-sm">Vertex filter radius <i class="fa-solid fa-circle-info info-icon"></i></div>
+              <input class="mock-input" value="1" style="margin-bottom: 12px;">
+
+              <div class="form-label-sm">Vertex filter range <i class="fa-solid fa-circle-info info-icon"></i></div>
+              <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                <div><span style="font-size: 11px; color: #999;">From:</span> <input class="mock-input" value="300" style="width: 80px;"></div>
+                <div><span style="font-size: 11px; color: #999;">To:</span> <input class="mock-input" value="1000" style="width: 80px;"></div>
+              </div>
+
+              <div class="form-label-sm">Arc weight property <i class="fa-solid fa-circle-info info-icon"></i></div>
+              <select class="mock-select" style="margin-bottom: 12px;"><option>Select property</option></select>
+
+              <div class="form-label-sm">Max number of arcs <i class="fa-solid fa-circle-info info-icon"></i></div>
+              <input class="mock-input" value="1000">
+            </div>
+          </div>
+        </div>
+
+        <!-- AFTER -->
+        <div>
+          <div class="comparison-label after">Proposed Settings</div>
+          <div style="border: 1px solid var(--fna-border); border-radius: 6px; overflow: hidden;">
+            <div class="panel-header-bar">
+              <h3 style="font-size: 14px;">Settings</h3>
+              <button class="panel-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="panel-content" style="font-size: 12px;">
+              <div style="font-size: 15px; font-weight: 700; margin-bottom: 12px;">Explore widget</div>
+
+              <div class="panel-section-title"><i class="fa-solid fa-chevron-down"></i> General settings</div>
+              <div style="margin-left: 16px; margin-bottom: 16px;">
+                <div class="form-label-sm">Widget label</div>
+                <input class="mock-input" value="Explore">
+              </div>
+
+              <div class="panel-section-title"><i class="fa-solid fa-chevron-down"></i> Explore layout</div>
+              <div style="margin-left: 16px; margin-bottom: 16px;">
+                <div class="mock-toggle">
+                  <div class="toggle-track"></div>
+                  <span class="toggle-label">Auto-center the explore visualization when data filters are applied</span>
+                </div>
+                <div class="mock-toggle">
+                  <div class="toggle-track"></div>
+                  <span class="toggle-label">Hide disconnected nodes</span>
+                </div>
+              </div>
+
+              <!-- REMOVED -->
+              <div class="removed-field" style="margin-bottom: 12px;">
+                <div class="form-label-sm" style="margin-bottom: 4px;">
+                  Vertex weight property <i class="fa-solid fa-circle-info info-icon"></i>
+                  <span class="removed-badge">REMOVED</span>
+                </div>
+                <select class="mock-select"><option>Select property</option></select>
+              </div>
+
+              <div class="form-label-sm">Vertex filter radius <i class="fa-solid fa-circle-info info-icon"></i></div>
+              <input class="mock-input" value="1" style="margin-bottom: 12px;">
+
+              <div class="form-label-sm">Vertex filter range <i class="fa-solid fa-circle-info info-icon"></i></div>
+              <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                <div><span style="font-size: 11px; color: #999;">From:</span> <input class="mock-input" value="300" style="width: 80px;"></div>
+                <div><span style="font-size: 11px; color: #999;">To:</span> <input class="mock-input" value="1000" style="width: 80px;"></div>
+              </div>
+
+              <div class="form-label-sm">Arc weight property <i class="fa-solid fa-circle-info info-icon"></i></div>
+              <select class="mock-select" style="margin-bottom: 12px;"><option>Select property</option></select>
+
+              <div class="form-label-sm">Max number of arcs <i class="fa-solid fa-circle-info info-icon"></i></div>
+              <input class="mock-input" value="1000">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SLIDE 6: ILO ANALOGY ===== -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="step-badge">6</div>
+      <h2>Existing Pattern — ILO "Analysis Settings"</h2>
+      <span class="subtitle">Precedent in our codebase</span>
+    </div>
+    <div class="slide-body">
+      <div class="slide-description">
+        This proposal reuses the <strong>exact same architecture</strong> already proven in ILO monitoring. The "Layout Settings" button mirrors the "Analysis" button pattern — same toolbar placement, same sidenav mechanism, same empty-state UX.
+      </div>
+
+      <table class="table table-sm table-bordered" style="font-size: 13px;">
+        <thead style="background: #f0f0f0;">
+          <tr>
+            <th style="width: 30%;">Aspect</th>
+            <th style="width: 35%;">ILO "Analysis" (existing)</th>
+            <th style="width: 35%;">Explore "Layout Settings" (proposed)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Toolbar button</strong></td>
+            <td><i class="fa-solid fa-diagram-project"></i> "Analysis" icon button</td>
+            <td><i class="fa-solid fa-diagram-project"></i> "Layout Settings" icon button</td>
+          </tr>
+          <tr>
+            <td><strong>Reload button</strong></td>
+            <td><i class="fa-solid fa-arrows-rotate"></i> "Reload analysis" (data-related)</td>
+            <td>N/A — layout is a visual config, no reload needed</td>
+          </tr>
+          <tr>
+            <td><strong>Side panel</strong></td>
+            <td>Opens via <code>SidenavService</code> as <code>ILO_TEMPLATE_SETTINGS</code></td>
+            <td>Opens via <code>SidenavService</code> as new type (e.g. <code>LAYOUT_SETTINGS</code>)</td>
+          </tr>
+          <tr>
+            <td><strong>Empty state</strong></td>
+            <td>"The chart widget can't be created — Analysis configuration is not set up"</td>
+            <td>"The Explore widget can't be created — Layout configuration is not set up"</td>
+          </tr>
+          <tr>
+            <td><strong>Quick-open button</strong></td>
+            <td>Red "Analysis Settings" button in empty state</td>
+            <td>Red "Layout Settings" button in empty state</td>
+          </tr>
+          <tr>
+            <td><strong>Purpose</strong></td>
+            <td>Configure ILO template (data source & aggregation)</td>
+            <td>Configure layout algorithm & priority metric</td>
+          </tr>
+          <tr>
+            <td><strong>graph-header inputs</strong></td>
+            <td><code>showIloTemplateSettings</code>, <code>hasIloTemplateSettings</code></td>
+            <td>Reuse same inputs OR add dedicated <code>showLayoutSettings</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style="background: #d1e7dd; border-radius: 6px; padding: 12px 16px; font-size: 13px; margin-top: 12px;">
+        <strong>Benefit:</strong> By reusing the existing <code>graph-header</code> + <code>SidenavService</code> + <code>graph-empty-message</code> infrastructure, implementation requires minimal new components — mostly wiring and the Layout Settings panel content itself.
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SLIDE 7: AC COVERAGE ===== -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="step-badge">7</div>
+      <h2>Acceptance Criteria Coverage</h2>
+    </div>
+    <div class="slide-body">
+      <table class="table table-sm" style="font-size: 13px;">
+        <thead style="background: #f0f0f0;">
+          <tr>
+            <th>AC</th>
+            <th>Requirement</th>
+            <th>Covered by</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="ac-badge">AC 1</span></td>
+            <td>Dedicated section, remove Vertex Weight from settings</td>
+            <td>Slide 2 (separate panel) + Slide 5 (field removed)</td>
+          </tr>
+          <tr>
+            <td><span class="ac-badge">AC 2</span></td>
+            <td>Layout algorithm dropdown with layman descriptions</td>
+            <td>Slide 2 — Layout algorithm field with hint text</td>
+          </tr>
+          <tr>
+            <td><span class="ac-badge">AC 3</span></td>
+            <td>Priority metric with categorized dropdown (Calculate Metrics / Existing Properties)</td>
+            <td>Slide 2 — Priority metric field with optgroup categories</td>
+          </tr>
+          <tr>
+            <td><span class="ac-badge">AC 4</span></td>
+            <td>Entry point: widget icon opens settings, defaults to Force-Directed + Local Importance</td>
+            <td>Slide 1 (button) + Slide 3 (empty state) + Slide 2 (defaults selected)</td>
+          </tr>
+          <tr>
+            <td><span class="ac-badge">AC 5</span></td>
+            <td>Loading overlay with cancel button</td>
+            <td>Slide 4 — Loading state with spinner and cancel</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
